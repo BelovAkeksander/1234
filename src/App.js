@@ -26,6 +26,7 @@ const ArticleListItem = ({ article, onDelete }) => {
   <div className="ButtonContainer2">
   <button className="ButtonDelete" onClick={handleDelete}>Удалить</button>
 </div>
+
         </div>
         {article.image && (
           <div className="ArticleImage">
@@ -36,7 +37,6 @@ const ArticleListItem = ({ article, onDelete }) => {
     </div>
   );
 };
-
 const ArticleList = ({ articles, onDelete, onFilterChange }) => {
   return (
     <>
@@ -46,7 +46,6 @@ const ArticleList = ({ articles, onDelete, onFilterChange }) => {
         <option value="спорт">Спорт</option>
         <option value="путешествия">Путешествия</option>
       </select>
-
       <div>
         {articles.map((article) => (
           <ArticleListItem key={article.id} article={article} onDelete={onDelete} />
@@ -55,7 +54,6 @@ const ArticleList = ({ articles, onDelete, onFilterChange }) => {
     </>
   );
 };
-
 const ArticleDetail = ({ articles, onAddComment }) => {
   let { id } = useParams();
   let article = articles.find((article) => article.id === id);
@@ -66,7 +64,6 @@ const ArticleDetail = ({ articles, onAddComment }) => {
   const handleSubmitComment = (commentText) => {
     onAddComment(article.id, commentText);
   };
-
   return (
     <div>
       {article ? (
