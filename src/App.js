@@ -3,6 +3,39 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
 import './App.css';
 
+const ArticleListItem = ({ article, onDelete }) => {
+  const handleDelete = () => {
+    onDelete(article.id);
+  };
+
+  return (
+    <div key={article.id} className={`Article ${article.category}`}>
+      <div className="ArticleContainer">
+        <div className="ArticleText">
+          <h3>Заголовок статьи:</h3>
+          <h2>{article.title}</h2>
+          <h3>Кратко о статье:</h3>
+          <p>{article.summary}</p>
+          <p>Категория: {article.category}</p>
+          <div className="ButtonContainer1">
+  <Link to={`/article/${article.id}`} className="LinkReadMore">Читать далее</Link>
+  </div>
+  <div className="ButtonContainer">
+  <Link to={`/edit/${article.id}`} className="LinkEdit">Редактировать</Link>
+  </div>
+  <div className="ButtonContainer2">
+  <button className="ButtonDelete" onClick={handleDelete}>Удалить</button>
+</div>
+        </div>
+        {article.image && (
+          <div className="ArticleImage">
+            <img src={article.image} alt={article.title} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const ArticleList = ({ articles, onDelete, onFilterChange }) => {
   return (
@@ -16,25 +49,19 @@ const ArticleList = ({ articles, onDelete, onFilterChange }) => {
 
       <div>
         {articles.map((article) => (
-          <div key={article.id}>
-            <h2>{article.title}</h2>
-            <p>{article.summary}</p>
-            <p>Категория: {article.category}</p>
-            <Link to={`/article/${article.id}`}>Читать далее</Link>
-            <Link to={`/edit/${article.id}`}>Редактировать</Link>
-            <button onClick={() => onDelete(article.id)}>Удалить</button>
-          </div>
+          <ArticleListItem key={article.id} article={article} onDelete={onDelete} />
         ))}
       </div>
     </>
   );
 };
 
-
 const ArticleDetail = ({ articles, onAddComment }) => {
   let { id } = useParams();
   let article = articles.find((article) => article.id === id);
   let navigate = useNavigate();
+  
+  const [isImageExpanded, setIsImageExpanded] = useState(false);
 
   const handleSubmitComment = (commentText) => {
     onAddComment(article.id, commentText);
@@ -44,6 +71,26 @@ const ArticleDetail = ({ articles, onAddComment }) => {
     <div>
       {article ? (
         <>
+          {isImageExpanded ? (
+  <div className="ExpandedImageOverlay" onClick={() => setIsImageExpanded(false)}>
+    <img
+      src={article.image}
+      alt={article.title}
+      className="ExpandedImage"
+    />
+  </div>
+) : (
+  article.image && (
+    <div className="ImageContainer">
+      <img
+        src={article.image}
+        alt={article.title}
+        style={{ width: '500px', height: '350px', cursor: 'pointer' }}
+        onClick={() => setIsImageExpanded(true)}
+      />
+    </div>
+  )
+)}
           <h1>{article.title}</h1>
           <p>{article.content}</p>
           <CommentList comments={article.comments} />
@@ -55,7 +102,6 @@ const ArticleDetail = ({ articles, onAddComment }) => {
     </div>
   );
 };
-
 
 const CommentList = ({ comments }) => {
   return (
@@ -75,7 +121,6 @@ const CommentList = ({ comments }) => {
     </div>
   );
 };
-
 
 const AddComment = ({ onAddComment }) => {
   const [comment, setComment] = useState('');
@@ -97,6 +142,71 @@ const AddComment = ({ onAddComment }) => {
   );
 };
 
+const AddArticle = ({ onAddArticle }) => {
+  const [title, setTitle] = useState('');
+  const [summary, setSummary] = useState('');
+  const [content, setContent] = useState('');
+  const [category, setCategory] = useState('технологии');
+  const [image, setImage] = useState(null);
+  const navigate = useNavigate();
+
+  const handleImageChange = (e) => {
+    if (e.target.files[0]) {
+      setImage(URL.createObjectURL(e.target.files[0]));
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const articleId = Date.now().toString();
+    onAddArticle({
+      id: articleId,
+      title,
+      summary,
+      content,
+      category,
+      image,
+      comments: [],
+    });
+    setTitle('');
+    setSummary('');
+    setContent('');
+    setCategory('технологии');
+    setImage(null);
+    navigate('/');
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <label>
+        Заголовок:
+        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
+      </label>
+      <label>
+        Краткое описание:
+        <textarea value={summary} onChange={(e) => setSummary(e.target.value)} required />
+      </label>
+      <label>
+        Содержание статьи:
+        <textarea value={content} onChange={(e) => setContent(e.target.value)} required />
+      </label>
+      <label>
+        Категория:
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          <option value="технологии">Технологии</option>
+          <option value="спорт">Спорт</option>
+          <option value="путешествия">Путешествия</option>
+        </select>
+      </label>
+      <label>
+        Изображение:
+        <input type="file" onChange={handleImageChange} />
+        {image && <img src={image} alt="Preview" style={{ width: '500px', height: '350px' }} />}
+      </label>
+      <button type="submit">Добавить статью</button>
+    </form>
+  );
+};
 
 const EditArticle = ({ articles, onUpdateArticle }) => {
   let { id } = useParams();
@@ -104,12 +214,28 @@ const EditArticle = ({ articles, onUpdateArticle }) => {
   let navigate = useNavigate();
 
   const [title, setTitle] = useState(article.title);
+  const [summary, setSummary] = useState(article.summary);
   const [content, setContent] = useState(article.content);
   const [category, setCategory] = useState(article.category);
+  const [image, setImage] = useState(article.image);
+
+  const handleImageChange = (e) => {
+    if (e.target.files[0]) {
+      setImage(URL.createObjectURL(e.target.files[0]));
+    }
+  };
+
+  const handleTitleChange = (e) => {
+    setTitle(e.target.value);
+  };
+
+  const handleContentChange = (e) => {
+    setContent(e.target.value);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onUpdateArticle(id, title, content, category);
+    onUpdateArticle(id, title, summary, content, category, image);
     navigate('/');
   };
 
@@ -117,11 +243,15 @@ const EditArticle = ({ articles, onUpdateArticle }) => {
     <form onSubmit={handleSubmit}>
       <label>
         Заголовок:
-        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <input type="text" value={title} onChange={handleTitleChange} required />
+      </label>
+      <label>
+        Краткое описание:
+        <textarea value={summary} onChange={(e) => setSummary(e.target.value)} required />
       </label>
       <label>
         Содержание статьи:
-        <textarea value={content} onChange={(e) => setContent(e.target.value)} required />
+        <textarea value={content} onChange={handleContentChange} required />
       </label>
       <label>
         Категория:
@@ -130,85 +260,40 @@ const EditArticle = ({ articles, onUpdateArticle }) => {
           <option value="спорт">Спорт</option>
           <option value="путешествия">Путешествия</option>
         </select>
+      </label>
+      <label>
+        Изображение:
+        <input type="file" onChange={handleImageChange} />
+        {image && <img src={image} alt="Preview" style={{ width: '100px', height: '100px' }} />}
       </label>
       <button type="submit">Сохранить изменения</button>
     </form>
   );
 };
 
-
-const AddArticle = ({ onAddArticle }) => {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [category, setCategory] = useState('технологии');
-  const navigate = useNavigate();
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onAddArticle({
-      id: Date.now().toString(),
-      title,
-      summary: content.substring(0, 100) + '...',
-      content,
-      category,
-      comments: []
-    });
-    setTitle('');
-    setContent('');
-    setCategory('технологии');
-    navigate('/');
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <label>
-        Заголовок:
-        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
-      </label>
-      <label>
-        Содержание статьи:
-        <textarea value={content} onChange={(e) => setContent(e.target.value)} required />
-      </label>
-      <label>
-        Категория:
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          <option value="технологии">Технологии</option>
-          <option value="спорт">Спорт</option>
-          <option value="путешествия">Путешествия</option>
-        </select>
-      </label>
-      <button type="submit">Добавить статью</button>
-    </form>
-  );
-};
-
-
 const App = () => {
-  const [articles, setArticles] = useState([
-    { id: '1', title: 'Статья 1', category: 'технологии', summary: 'Краткое описание статьи 1', content: 'Полное содержание статьи 1', comments: [] },
-    { id: '2', title: 'Статья 2', category: 'спорт', summary: 'Краткое описание статьи 2', content: 'Полное содержание статьи 2', comments: [] },
-  
-  ]);
+  const [articles, setArticles] = useState([]);
+
   const [filter, setFilter] = useState('все');
 
   const handleFilterChange = (e) => {
     setFilter(e.target.value);
   };
 
-  const addNewArticle = (article) => {
-    setArticles(prevArticles => [...prevArticles, article]);
+  const addNewArticle = (newArticle) => {
+    setArticles((prevArticles) => [...prevArticles, newArticle]);
   };
 
-  const updateArticle = (id, title, content, category) => {
-    setArticles(prevArticles =>
+  const updateArticle = (id, title, summary, content, category, image) => {
+    setArticles((prevArticles) =>
       prevArticles.map((article) =>
-        article.id === id ? { ...article, title, content, category } : article
+        article.id === id ? { ...article, title, summary, content, category, image } : article
       )
     );
   };
 
   const addCommentToArticle = (articleId, commentText) => {
-    setArticles(prevArticles =>
+    setArticles((prevArticles) =>
       prevArticles.map((article) =>
         article.id === articleId ? { ...article, comments: [...article.comments, commentText] } : article
       )
@@ -216,20 +301,26 @@ const App = () => {
   };
 
   const deleteArticle = (articleId) => {
-    setArticles(prevArticles => prevArticles.filter(article => article.id !== articleId));
+    setArticles((prevArticles) => prevArticles.filter((article) => article.id !== articleId));
   };
 
-  const filteredArticles = filter === 'все' ? articles : articles.filter(article => article.category === filter);
+  const filteredArticles = filter === 'все' ? articles : articles.filter((article) => article.category === filter);
 
   return (
     <Router>
       <div className="App">
         <nav>
           <Link to="/">Главная</Link>
+          <div className="nav-logo">
+    <img src="https://i.pinimg.com/originals/cc/7a/d3/cc7ad3d3ba4e80853304bee2dc3015da.png" alt="Logo" />
+  </div>
           <Link to="/add">Добавить статью</Link>
         </nav>
         <Routes>
-          <Route path="/" element={<ArticleList articles={filteredArticles} onDelete={deleteArticle} onFilterChange={handleFilterChange} />} />
+          <Route
+            path="/"
+            element={<ArticleList articles={filteredArticles} onDelete={deleteArticle} onFilterChange={handleFilterChange} />}
+          />
           <Route path="/article/:id" element={<ArticleDetail articles={articles} onAddComment={addCommentToArticle} />} />
           <Route path="/add" element={<AddArticle onAddArticle={addNewArticle} />} />
           <Route path="/edit/:id" element={<EditArticle articles={articles} onUpdateArticle={updateArticle} />} />
@@ -240,3 +331,9 @@ const App = () => {
 };
 
 export default App;
+
+
+
+
+
+
